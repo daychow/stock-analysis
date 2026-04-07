@@ -17,7 +17,7 @@ export async function GET(
     const competitors = await fetchCompetitors(ticker);
     await cache.set(`competitors:${ticker}`, { competitors }, 604800);
     return NextResponse.json({ competitors });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: `Failed to fetch competitors for ${ticker}` },
       { status: 500 }

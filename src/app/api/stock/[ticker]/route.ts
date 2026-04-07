@@ -16,7 +16,7 @@ export async function GET(
       fetchPriceHistory(ticker, period),
     ]);
     return NextResponse.json({ ...quote, history });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: `Failed to fetch stock data for ${ticker}` },
       { status: 500 }

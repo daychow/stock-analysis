@@ -17,7 +17,7 @@ export async function GET(
     const news = await fetchNews(ticker);
     await cache.set(`news:${ticker}`, { news }, 3600);
     return NextResponse.json({ news });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: `Failed to fetch news for ${ticker}` },
       { status: 500 }

@@ -17,7 +17,7 @@ export async function GET(
     const financials = await fetchFinancials(ticker);
     await cache.set(`financials:${ticker}`, financials, 86400);
     return NextResponse.json(financials);
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: `Failed to fetch financials for ${ticker}` },
       { status: 500 }
