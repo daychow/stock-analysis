@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStockQuote, fetchFinancials, fetchNews, fetchCompetitors } from "@/lib/yahoo-finance";
 import { analyzeStock } from "@/lib/openrouter";

@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchCompetitors } from "@/lib/yahoo-finance";
 import { CacheHelper } from "@/lib/cache";

@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStockQuote, fetchPriceHistory } from "@/lib/yahoo-finance";
 import type { Period } from "@/lib/yahoo-finance";
