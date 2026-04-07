@@ -11,6 +11,12 @@ export interface StockQuote {
   currency: string;
   description: string;
   revenueBreakdown: string;
+  marketCap: number;
+  trailingPE: number;
+  forwardPE: number;
+  priceToBook: number;
+  evToEbitda: number;
+  dividendYield: number;
 }
 
 export interface BalanceSheetEntry {
@@ -29,9 +35,20 @@ export interface IncomeStatementEntry {
   netMargin: number;
 }
 
+export interface CashFlowEntry {
+  year: string;
+  operatingCashFlow: number;
+  capitalExpenditure: number;
+  freeCashFlow: number;
+}
+
 export interface FinancialsData {
   balanceSheet: BalanceSheetEntry[];
   incomeStatement: IncomeStatementEntry[];
+  cashFlow: CashFlowEntry[];
+  revenueGrowth: number[];
+  netIncomeGrowth: number[];
+  fcfGrowth: number[];
 }
 
 export interface NewsArticle {
@@ -48,6 +65,9 @@ export interface CompetitorSummary {
   totalAssets: number;
   totalLiabilities: number;
   shareholdersEquity: number;
+  marketCap: number;
+  trailingPE: number;
+  priceToBook: number;
 }
 
 export type Recommendation = "BUY" | "WATCH" | "SELL";
