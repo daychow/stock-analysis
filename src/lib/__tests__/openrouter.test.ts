@@ -9,15 +9,20 @@ const mockQuote: StockQuote = {
   changePercent: 1.33, currency: "USD",
   description: "Apple designs and sells electronics.",
   revenueBreakdown: "Products (78%), Services (22%)",
+  marketCap: 2800000000000, trailingPE: 28.5, forwardPE: 25.2,
+  priceToBook: 45.2, evToEbitda: 22.1, dividendYield: 0.5,
 };
 
 const mockFinancials: FinancialsData = {
   balanceSheet: [{ year: "2024", totalAssets: 352600000000, totalLiabilities: 290400000000, shareholdersEquity: 62100000000, debtToEquity: 4.67 }],
   incomeStatement: [{ year: "2024", totalRevenue: 383300000000, netIncome: 97000000000, grossMargin: 0.462, netMargin: 0.253 }],
+  cashFlow: [{ year: "2024", operatingCashFlow: 110500000000, capitalExpenditure: -11000000000, freeCashFlow: 99500000000 }],
+  revenueGrowth: [15.2], netIncomeGrowth: [12.5], fcfGrowth: [6.8],
 };
 
 const mockCompetitors: CompetitorSummary[] = [
-  { ticker: "MSFT", name: "Microsoft", sector: "Technology", totalAssets: 411900000000, totalLiabilities: 205700000000, shareholdersEquity: 206200000000 },
+  { ticker: "MSFT", name: "Microsoft", sector: "Technology", totalAssets: 411900000000, totalLiabilities: 205700000000, shareholdersEquity: 206200000000,
+    marketCap: 3100000000000, trailingPE: 35.2, priceToBook: 12.1 },
 ];
 
 const mockNews: NewsArticle[] = [
@@ -30,6 +35,9 @@ describe("OpenRouter helpers", () => {
     expect(prompt).toContain("Apple Inc.");
     expect(prompt).toContain("Balance Sheet");
     expect(prompt).toContain("MSFT");
+    expect(prompt).toContain("P/E");
+    expect(prompt).toContain("Cash Flow");
+    expect(prompt).toContain("Growth");
   });
 
   it("parseAnalysisResponse extracts valid JSON", () => {
