@@ -18,6 +18,7 @@ interface CompanyData {
   ticker: string; name: string;
   totalAssets: number; totalLiabilities: number;
   shareholdersEquity: number; debtToEquity: number;
+  marketCap: number; trailingPE: number; priceToBook: number;
 }
 
 export default function ComparePage() {
@@ -41,12 +42,14 @@ export default function ComparePage() {
           totalAssets: bs?.totalAssets ?? 0, totalLiabilities: bs?.totalLiabilities ?? 0,
           shareholdersEquity: bs?.shareholdersEquity ?? 0,
           debtToEquity: bs?.debtToEquity ?? 0,
+          marketCap: quoteData.marketCap ?? 0, trailingPE: quoteData.trailingPE ?? 0, priceToBook: quoteData.priceToBook ?? 0,
         });
         setCompetitors((competitorsData.competitors ?? []).map((c) => ({
           ticker: c.ticker, name: c.name,
           totalAssets: c.totalAssets, totalLiabilities: c.totalLiabilities,
           shareholdersEquity: c.shareholdersEquity,
           debtToEquity: c.shareholdersEquity !== 0 ? c.totalLiabilities / c.shareholdersEquity : 0,
+          marketCap: c.marketCap ?? 0, trailingPE: c.trailingPE ?? 0, priceToBook: c.priceToBook ?? 0,
         })));
         setLoading(false);
       })
@@ -91,6 +94,33 @@ export default function ComparePage() {
                   <TableCell className="text-right">{fmt(company.totalLiabilities)}</TableCell>
                   <TableCell className="text-right">{fmt(company.shareholdersEquity)}</TableCell>
                   <TableCell className="text-right">{company.debtToEquity.toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Valuation Comparison */}
+      <Card>
+        <CardHeader><CardTitle>估值指標對比</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>公司</TableHead>
+                <TableHead className="text-right">Market Cap</TableHead>
+                <TableHead className="text-right">P/E</TableHead>
+                <TableHead className="text-right">P/B</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allCompanies.map((company) => (
+                <TableRow key={`val-${company.ticker}`} className={company.ticker === ticker ? "bg-blue-50 font-semibold" : ""}>
+                  <TableCell>{company.name} ({company.ticker})</TableCell>
+                  <TableCell className="text-right">{fmt(company.marketCap)}</TableCell>
+                  <TableCell className="text-right">{company.trailingPE > 0 ? company.trailingPE.toFixed(1) : "N/A"}</TableCell>
+                  <TableCell className="text-right">{company.priceToBook > 0 ? company.priceToBook.toFixed(1) : "N/A"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
