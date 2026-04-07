@@ -1,0 +1,162 @@
+<h2>Stock Analysis Tool — UI Mockup</h2>
+<p class="subtitle">主要頁面佈局設計</p>
+
+<div class="section">
+  <h3>首頁 — 搜索</h3>
+  <div class="mockup">
+    <div class="mockup-header">Home Page</div>
+    <div class="mockup-body" style="text-align:center; padding:60px 20px;">
+      <div style="font-size:28px; font-weight:700; margin-bottom:8px;">📊 Stock Analysis</div>
+      <div style="color:#888; margin-bottom:24px;">輸入股票代碼開始分析</div>
+      <div style="max-width:500px; margin:0 auto; display:flex; gap:8px;">
+        <input class="mock-input" placeholder="e.g. AAPL, 0700.HK" style="flex:1; padding:12px 16px; font-size:16px;">
+        <button class="mock-button" style="padding:12px 24px;">搜索</button>
+      </div>
+      <div style="margin-top:24px; color:#666; font-size:13px;">最近搜索：
+        <span style="background:#f0f0f0; padding:4px 10px; border-radius:12px; margin:0 4px;">AAPL</span>
+        <span style="background:#f0f0f0; padding:4px 10px; border-radius:12px; margin:0 4px;">0700.HK</span>
+        <span style="background:#f0f0f0; padding:4px 10px; border-radius:12px; margin:0 4px;">TSLA</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>股票詳情頁 — /stock/AAPL</h3>
+  <div class="mockup">
+    <div class="mockup-header">Stock Detail — AAPL</div>
+    <div class="mockup-body" style="padding:20px;">
+
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+          <div style="font-size:24px; font-weight:700;">Apple Inc. (AAPL)</div>
+          <div style="color:#888;">Technology · Consumer Electronics</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:28px; font-weight:700;">$178.72</div>
+          <div style="color:#22c55e; font-weight:600;">+2.34 (+1.33%)</div>
+        </div>
+      </div>
+
+      <!-- AI Recommendation Badge -->
+      <div style="background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; align-items:center; gap:12px;">
+        <span style="background:#22c55e; color:white; padding:6px 16px; border-radius:6px; font-weight:700; font-size:14px;">買入 BUY</span>
+        <span style="color:#166534; font-size:14px;">基於財務數據分析，公司資產負債健康，盈利持續增長</span>
+      </div>
+
+      <!-- Chart placeholder -->
+      <div style="background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; height:200px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; color:#999;">
+        📈 股價走勢圖（1M / 3M / 1Y / 5Y）
+      </div>
+
+      <!-- Two column layout -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+
+        <!-- Company Info -->
+        <div style="background:#f8f9fa; border-radius:8px; padding:16px;">
+          <div style="font-weight:700; margin-bottom:8px;">公司業務</div>
+          <div style="font-size:13px; color:#555; line-height:1.6;">Apple Inc. 設計、製造並銷售智能手機、個人電腦、平板電腦、穿戴裝置及配件。主要產品包括 iPhone、Mac、iPad、Apple Watch。服務業務包括 App Store、Apple Music、iCloud。</div>
+          <div style="margin-top:12px; font-weight:700; margin-bottom:8px;">盈利方式</div>
+          <div style="font-size:13px; color:#555;">產品銷售 (78%) · 服務收入 (22%)</div>
+        </div>
+
+        <!-- Balance Sheet Summary -->
+        <div style="background:#f8f9fa; border-radius:8px; padding:16px;">
+          <div style="font-weight:700; margin-bottom:8px;">Balance Sheet 摘要</div>
+          <table style="width:100%; font-size:13px; border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #e0e0e0;">
+              <td style="padding:6px 0; color:#888;">Total Assets</td>
+              <td style="padding:6px 0; text-align:right; font-weight:600;">$352.6B</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e0e0e0;">
+              <td style="padding:6px 0; color:#888;">Total Liabilities</td>
+              <td style="padding:6px 0; text-align:right; font-weight:600;">$290.4B</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e0e0e0;">
+              <td style="padding:6px 0; color:#888;">Shareholders' Equity</td>
+              <td style="padding:6px 0; text-align:right; font-weight:600;">$62.1B</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0; color:#888;">Debt-to-Equity</td>
+              <td style="padding:6px 0; text-align:right; font-weight:600;">4.67</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- News -->
+      <div style="background:#f8f9fa; border-radius:8px; padding:16px; margin-bottom:20px;">
+        <div style="font-weight:700; margin-bottom:12px;">最新新聞</div>
+        <div style="font-size:13px; line-height:2; color:#555;">
+          📰 Apple Reports Record Q4 Revenue of $89.5 Billion<br>
+          📰 Apple Intelligence Features Rolling Out in iOS 18.2<br>
+          📰 Warren Buffett Reduces Apple Stake by 25%<br>
+          📰 Apple Vision Pro Sales Below Expectations<br>
+          📰 New MacBook Pro with M4 Chip Announced
+        </div>
+      </div>
+
+      <!-- Competitors -->
+      <div style="margin-bottom:20px;">
+        <div style="font-weight:700; margin-bottom:12px;">競爭對手</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+          <div style="background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:16px; cursor:pointer;">
+            <div style="font-weight:700;">Microsoft (MSFT)</div>
+            <div style="font-size:13px; color:#888; margin:4px 0;">Technology</div>
+            <div style="font-size:13px;">Assets: $411.9B</div>
+            <div style="font-size:13px;">Liabilities: $205.7B</div>
+            <div style="color:#2563eb; font-size:12px; margin-top:8px;">查看對比 →</div>
+          </div>
+          <div style="background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:16px; cursor:pointer;">
+            <div style="font-weight:700;">Samsung (005930.KS)</div>
+            <div style="font-size:13px; color:#888; margin:4px 0;">Technology</div>
+            <div style="font-size:13px;">Assets: $358.2B</div>
+            <div style="font-size:13px;">Liabilities: $116.8B</div>
+            <div style="color:#2563eb; font-size:12px; margin-top:8px;">查看對比 →</div>
+          </div>
+          <div style="background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:16px; cursor:pointer;">
+            <div style="font-weight:700;">Google (GOOGL)</div>
+            <div style="font-size:13px; color:#888; margin:4px 0;">Technology</div>
+            <div style="font-size:13px;">Assets: $402.3B</div>
+            <div style="font-size:13px;">Liabilities: $119.2B</div>
+            <div style="color:#2563eb; font-size:12px; margin-top:8px;">查看對比 →</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Analysis -->
+      <div style="background:#f0f7ff; border:1px solid #93c5fd; border-radius:8px; padding:20px;">
+        <div style="font-weight:700; margin-bottom:12px;">🤖 AI 分析</div>
+        <div style="font-size:13px; line-height:1.8; color:#333;">
+          <div style="margin-bottom:12px;">Apple 係全球市值最大嘅科技公司，擁有強勁嘅品牌忠誠度同生態系統護城河。</div>
+          <div style="margin-bottom:8px;"><strong style="color:#22c55e;">💪 強項</strong></div>
+          <div style="margin-bottom:12px; padding-left:12px;">• 服務業務持續增長，利潤率高<br>• 強勁現金流，每年回購大量股份<br>• 品牌價值全球第一</div>
+          <div style="margin-bottom:8px;"><strong style="color:#ef4444;">⚠️ 弱項</strong></div>
+          <div style="margin-bottom:12px; padding-left:12px;">• iPhone 銷售增長放緩<br>• 中國市場競爭加劇<br>• 高 Debt-to-Equity 比率</div>
+          <div style="margin-bottom:8px;"><strong>🔍 風險因素</strong></div>
+          <div style="padding-left:12px;">• 全球消費電子需求放緩<br>• AI 競爭落後於 Google、Microsoft</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<h3>你覺得呢個佈局點？</h3>
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>OK，呢個佈局好</h3>
+      <p>繼續用呢個方向</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>想改少少</h3>
+      <p>有啲地方想調整</p>
+    </div>
+  </div>
+</div>
