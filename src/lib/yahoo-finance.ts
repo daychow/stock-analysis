@@ -1,4 +1,3 @@
-import YahooFinance from "yahoo-finance2";
 import type {
   StockQuote,
   FinancialsData,
@@ -13,8 +12,67 @@ import type {
 
 export type Period = "1mo" | "3mo" | "1y" | "5y";
 
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
+// ── Crumb / cookie cache ────────────────────────────────────────────
+let _crumb: string | null = null;
+let _cookie: string | null = null;
+
+async function getCrumbAndCookie(): Promise<{ crumb: string; cookie: string }> {
+  if (_crumb && _cookie) return { crumb: _crumb, cookie: _cookie };
+
+  // Step 1: hit fc.yahoo.com to get a cookie
+  const initRes = await fetch("https://fc.yahoo.com/", {
+    headers: { "User-Agent": USER_AGENT },
+    redirect: "manual",
+  });
+  // Collect Set-Cookie header(s)
+  const setCookie = initRes.headers.get("set-cookie") ?? "";
+  // We only need the cookie value (first part before ';')
+  const cookie = setCookie
+    .split(",")
+    .map((c) => c.split(";")[0].trim())
+    .filter(Boolean)
+    .join("; ");
+
+  // Step 2: fetch the crumb using that cookie
+  const crumbRes = await fetch(
+    "https://query2.finance.yahoo.com/v1/test/getcrumb",
+    {
+      headers: {
+        "User-Agent": USER_AGENT,
+        Cookie: cookie,
+      },
+    }
+  );
+  const crumb = await crumbRes.text();
+
+  _crumb = crumb;
+  _cookie = cookie;
+  return { crumb, cookie };
+}
+
+/** Authenticated fetch helper for endpoints that need crumb+cookie */
+async function yahooFetch(url: string): Promise<Response> {
+  const { crumb, cookie } = await getCrumbAndCookie();
+  const separator = url.includes("?") ? "&" : "?";
+  return fetch(`${url}${separator}crumb=${encodeURIComponent(crumb)}`, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Cookie: cookie,
+    },
+  });
+}
+
+/** Unauthenticated fetch helper (for chart, search endpoints) */
+async function yahooFetchPublic(url: string): Promise<Response> {
+  return fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
+  });
+}
+
+// ── Sector peers fallback ────────────────────────────────────────────
 const SECTOR_PEERS: Record<string, string[]> = {
   Technology: ["AAPL", "MSFT", "GOOGL", "META", "NVDA", "TSM"],
   "Financial Services": ["JPM", "BAC", "GS", "MS", "V", "MA"],
@@ -29,37 +87,7 @@ const SECTOR_PEERS: Record<string, string[]> = {
   "Basic Materials": ["LIN", "APD", "ECL", "SHW", "FCX"],
 };
 
-export async function fetchStockQuote(ticker: string): Promise<StockQuote> {
-  const result = await yf.quoteSummary(ticker, {
-    modules: ["price", "assetProfile", "defaultKeyStatistics", "summaryDetail"],
-  });
-
-  const price = result.price!;
-  const profile = result.assetProfile!;
-  const keyStats = result.defaultKeyStatistics;
-  const details = result.summaryDetail;
-
-  return {
-    ticker: price.symbol ?? ticker,
-    name: price.longName ?? price.shortName ?? ticker,
-    sector: profile.sector ?? "",
-    industry: profile.industry ?? "",
-    price: price.regularMarketPrice ?? 0,
-    change: price.regularMarketChange ?? 0,
-    changePercent: price.regularMarketChangePercent
-      ? price.regularMarketChangePercent * 100
-      : 0,
-    currency: price.currency ?? "USD",
-    description: profile.longBusinessSummary ?? "",
-    revenueBreakdown: "",
-    marketCap: price.marketCap ?? 0,
-    trailingPE: details?.trailingPE ?? 0,
-    forwardPE: details?.forwardPE ?? 0,
-    priceToBook: keyStats?.priceToBook ?? 0,
-    evToEbitda: keyStats?.enterpriseToEbitda ?? 0,
-    dividendYield: details?.dividendYield ? details.dividendYield * 100 : 0,
-  };
-}
+// ── Helpers ──────────────────────────────────────────────────────────
 
 function computeGrowth(values: number[]): number[] {
   const growth: number[] = [];
@@ -67,7 +95,9 @@ function computeGrowth(values: number[]): number[] {
     const current = values[i];
     const previous = values[i + 1];
     if (previous !== 0) {
-      growth.push(Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100);
+      growth.push(
+        Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100
+      );
     } else {
       growth.push(0);
     }
@@ -75,32 +105,147 @@ function computeGrowth(values: number[]): number[] {
   return growth;
 }
 
-export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
-  const data = await yf.fundamentalsTimeSeries(ticker, {
-    period1: new Date(Date.now() - 4 * 365 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    period2: new Date().toISOString().split("T")[0],
-    type: "annual",
-    module: "all",
-  });
+// ── fetchStockQuote ──────────────────────────────────────────────────
 
-  // Sort by date descending and take up to 3 years
-  const sorted = [...data].sort(
+export async function fetchStockQuote(ticker: string): Promise<StockQuote> {
+  const modules = "price,assetProfile,defaultKeyStatistics,summaryDetail";
+  const res = await yahooFetch(
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(ticker)}?modules=${modules}`
+  );
+  const json = await res.json();
+  const result = json?.quoteSummary?.result?.[0] ?? {};
+
+  const price = result.price ?? {};
+  const profile = result.assetProfile ?? {};
+  const keyStats = result.defaultKeyStatistics ?? {};
+  const details = result.summaryDetail ?? {};
+
+  return {
+    ticker: price.symbol ?? ticker,
+    name: price.longName ?? price.shortName ?? ticker,
+    sector: profile.sector ?? "",
+    industry: profile.industry ?? "",
+    price: price.regularMarketPrice?.raw ?? 0,
+    change: price.regularMarketChange?.raw ?? 0,
+    changePercent: price.regularMarketChangePercent?.raw
+      ? price.regularMarketChangePercent.raw * 100
+      : 0,
+    currency: price.currency ?? "USD",
+    description: profile.longBusinessSummary ?? "",
+    revenueBreakdown: "",
+    marketCap: price.marketCap?.raw ?? 0,
+    trailingPE: details.trailingPE?.raw ?? 0,
+    forwardPE: details.forwardPE?.raw ?? 0,
+    priceToBook: keyStats.priceToBook?.raw ?? 0,
+    evToEbitda: keyStats.enterpriseToEbitda?.raw ?? 0,
+    dividendYield: details.dividendYield?.raw
+      ? details.dividendYield.raw * 100
+      : 0,
+  };
+}
+
+// ── Fundamentals timeseries helper ──────────────────────────────────
+
+const TIMESERIES_TYPES = [
+  "totalAssets",
+  "totalLiabilitiesNetMinorityInterest",
+  "stockholdersEquity",
+  "totalDebt",
+  "totalRevenue",
+  "netIncomeCommonStockholders",
+  "grossProfit",
+  "operatingCashFlow",
+  "capitalExpenditure",
+];
+
+interface FundamentalsRow {
+  date: string;
+  [key: string]: number | string;
+}
+
+async function fetchTimeseries(
+  ticker: string,
+  frequency: "annual" | "quarterly",
+  periodMs: number
+): Promise<FundamentalsRow[]> {
+  const now = Math.floor(Date.now() / 1000);
+  const period1 = Math.floor((Date.now() - periodMs) / 1000);
+
+  const prefix = frequency === "annual" ? "annual" : "quarterly";
+  const types = TIMESERIES_TYPES.map(
+    (t) => `${prefix}${t[0].toUpperCase()}${t.slice(1)}`
+  ).join(",");
+
+  const url =
+    `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(ticker)}` +
+    `?type=${types}&period1=${period1}&period2=${now}&frequency=${frequency}`;
+
+  const res = await yahooFetchPublic(url);
+  const json = await res.json();
+
+  const resultArr: Array<{
+    meta: { type: string[] };
+    timestamp?: number[];
+    [key: string]: unknown;
+  }> = json?.timeseries?.result ?? [];
+
+  // Build a map: date -> row
+  const rowMap = new Map<string, FundamentalsRow>();
+
+  for (const series of resultArr) {
+    const typeName = series.meta?.type?.[0]; // e.g. "annualTotalRevenue"
+    if (!typeName) continue;
+
+    // Strip the prefix ("annual" or "quarterly") to get the camelCase field name
+    const fieldName =
+      typeName.startsWith("annual")
+        ? typeName.slice(6, 7).toLowerCase() + typeName.slice(7)
+        : typeName.slice(9, 10).toLowerCase() + typeName.slice(10);
+
+    const dataArr = (series[typeName] as Array<{
+      asOfDate: string;
+      reportedValue?: { raw: number };
+    }>) ?? [];
+
+    for (const entry of dataArr) {
+      const date = entry.asOfDate;
+      if (!date) continue;
+      if (!rowMap.has(date)) {
+        rowMap.set(date, { date });
+      }
+      const row = rowMap.get(date)!;
+      row[fieldName] = entry.reportedValue?.raw ?? 0;
+    }
+  }
+
+  // Sort descending by date
+  return Array.from(rowMap.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
-  const years = sorted.slice(0, 3);
+}
+
+// ── fetchFinancials ──────────────────────────────────────────────────
+
+export async function fetchFinancials(
+  ticker: string
+): Promise<FinancialsData> {
+  const annualRows = await fetchTimeseries(
+    ticker,
+    "annual",
+    4 * 365 * 24 * 60 * 60 * 1000
+  );
+  const years = annualRows.slice(0, 3);
 
   const balanceSheet: BalanceSheetEntry[] = years.map((row) => {
-    const totalAssets = (row as Record<string, unknown>).totalAssets as number ?? 0;
+    const totalAssets = (row.totalAssets as number) ?? 0;
     const totalLiabilities =
-      ((row as Record<string, unknown>).totalLiabilitiesNetMinorityInterest as number) ?? 0;
-    const equity = ((row as Record<string, unknown>).stockholdersEquity as number) ??
-      ((row as Record<string, unknown>).commonStockEquity as number) ??
-      totalAssets - totalLiabilities;
-    const debtToEquity = equity !== 0
-      ? (((row as Record<string, unknown>).totalDebt as number) ?? totalLiabilities) / equity
-      : 0;
+      (row.totalLiabilitiesNetMinorityInterest as number) ?? 0;
+    const equity =
+      (row.stockholdersEquity as number) ?? totalAssets - totalLiabilities;
+    const debtToEquity =
+      equity !== 0
+        ? ((row.totalDebt as number) ?? totalLiabilities) / equity
+        : 0;
 
     return {
       year: new Date(row.date).getFullYear().toString(),
@@ -112,12 +257,9 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
   });
 
   const incomeStatement: IncomeStatementEntry[] = years.map((row) => {
-    const totalRevenue = ((row as Record<string, unknown>).totalRevenue as number) ?? 0;
-    const netIncome =
-      ((row as Record<string, unknown>).netIncomeCommonStockholders as number) ??
-      ((row as Record<string, unknown>).netIncome as number) ??
-      0;
-    const grossProfit = ((row as Record<string, unknown>).grossProfit as number) ?? 0;
+    const totalRevenue = (row.totalRevenue as number) ?? 0;
+    const netIncome = (row.netIncomeCommonStockholders as number) ?? 0;
+    const grossProfit = (row.grossProfit as number) ?? 0;
     const grossMargin = totalRevenue !== 0 ? grossProfit / totalRevenue : 0;
     const netMargin = totalRevenue !== 0 ? netIncome / totalRevenue : 0;
 
@@ -131,9 +273,8 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
   });
 
   const cashFlow: CashFlowEntry[] = years.map((row) => {
-    const r = row as Record<string, unknown>;
-    const operatingCF = (r.operatingCashFlow as number) ?? 0;
-    const capex = (r.capitalExpenditure as number) ?? 0;
+    const operatingCF = (row.operatingCashFlow as number) ?? 0;
+    const capex = (row.capitalExpenditure as number) ?? 0;
     return {
       year: new Date(row.date).getFullYear().toString(),
       operatingCashFlow: operatingCF,
@@ -142,31 +283,23 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
     };
   });
 
-  // Fetch quarterly data (last 4 quarters)
-  const qData = await yf.fundamentalsTimeSeries(ticker, {
-    period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    period2: new Date().toISOString().split("T")[0],
-    type: "quarterly",
-    module: "all",
-  });
-
-  const qSorted = [...qData].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  // Quarterly data
+  const qRows = await fetchTimeseries(
+    ticker,
+    "quarterly",
+    2 * 365 * 24 * 60 * 60 * 1000
   );
-  const quarters = qSorted.slice(0, 4);
+  const quarters = qRows.slice(0, 4);
 
   const quarterly: QuarterlyEntry[] = quarters.map((row) => {
-    const r = row as Record<string, unknown>;
     const d = new Date(row.date);
     const q = Math.ceil((d.getMonth() + 1) / 3);
-    const operatingCF = (r.operatingCashFlow as number) ?? 0;
-    const capex = (r.capitalExpenditure as number) ?? 0;
+    const operatingCF = (row.operatingCashFlow as number) ?? 0;
+    const capex = (row.capitalExpenditure as number) ?? 0;
     return {
       quarter: `${d.getFullYear()} Q${q}`,
-      totalRevenue: (r.totalRevenue as number) ?? 0,
-      netIncome: (r.netIncomeCommonStockholders as number) ?? (r.netIncome as number) ?? 0,
+      totalRevenue: (row.totalRevenue as number) ?? 0,
+      netIncome: (row.netIncomeCommonStockholders as number) ?? 0,
       operatingCashFlow: operatingCF,
       freeCashFlow: operatingCF + capex,
     };
@@ -183,18 +316,35 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
   };
 }
 
-export async function fetchNews(ticker: string): Promise<NewsArticle[]> {
-  const result = await yf.search(ticker, { newsCount: 10 });
+// ── fetchNews ────────────────────────────────────────────────────────
 
-  return (result.news ?? []).slice(0, 10).map((item) => ({
-    title: item.title ?? "",
-    url: item.link ?? "",
-    source: item.publisher ?? "",
-    publishedAt: item.providerPublishTime
-      ? new Date(item.providerPublishTime).toISOString()
-      : "",
-  }));
+export async function fetchNews(ticker: string): Promise<NewsArticle[]> {
+  try {
+    const res = await yahooFetchPublic(
+      `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(ticker)}&newsCount=10`
+    );
+    const json = await res.json();
+    const news: Array<{
+      title?: string;
+      link?: string;
+      publisher?: string;
+      providerPublishTime?: number;
+    }> = json?.news ?? [];
+
+    return news.slice(0, 10).map((item) => ({
+      title: item.title ?? "",
+      url: item.link ?? "",
+      source: item.publisher ?? "",
+      publishedAt: item.providerPublishTime
+        ? new Date(item.providerPublishTime * 1000).toISOString()
+        : "",
+    }));
+  } catch {
+    return [];
+  }
 }
+
+// ── fetchPriceHistory ────────────────────────────────────────────────
 
 export async function fetchPriceHistory(
   ticker: string,
@@ -214,21 +364,30 @@ export async function fetchPriceHistory(
     "5y": "1mo",
   };
 
-  const now = new Date();
-  const start = new Date(now.getTime() - periodMs[period]);
+  const now = Math.floor(Date.now() / 1000);
+  const period1 = Math.floor((Date.now() - periodMs[period]) / 1000);
 
-  const result = await yf.chart(ticker, {
-    period1: start,
-    period2: now,
-    interval: intervalMap[period] as "1d" | "1wk" | "1mo",
-  });
+  const res = await yahooFetchPublic(
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${now}&interval=${intervalMap[period]}`
+  );
+  const json = await res.json();
 
-  return (result.quotes ?? []).map((q) => ({
-    date: new Date(q.date).toISOString().split("T")[0],
-    close: q.close ?? 0,
-    volume: q.volume ?? 0,
+  const result = json?.chart?.result?.[0];
+  if (!result) return [];
+
+  const timestamps: number[] = result.timestamp ?? [];
+  const quotes = result.indicators?.quote?.[0] ?? {};
+  const closes: (number | null)[] = quotes.close ?? [];
+  const volumes: (number | null)[] = quotes.volume ?? [];
+
+  return timestamps.map((ts, i) => ({
+    date: new Date(ts * 1000).toISOString().split("T")[0],
+    close: closes[i] ?? 0,
+    volume: volumes[i] ?? 0,
   }));
 }
+
+// ── fetchCompetitors ─────────────────────────────────────────────────
 
 export async function fetchCompetitors(
   ticker: string
@@ -237,11 +396,16 @@ export async function fetchCompetitors(
 
   // Try recommendationsBySymbol first
   try {
-    const rec = await yf.recommendationsBySymbol(ticker);
-    if (rec.recommendedSymbols && rec.recommendedSymbols.length > 0) {
-      competitorTickers = rec.recommendedSymbols
+    const res = await yahooFetchPublic(
+      `https://query2.finance.yahoo.com/v6/finance/recommendationsbysymbol/${encodeURIComponent(ticker)}`
+    );
+    const json = await res.json();
+    const recommended =
+      json?.finance?.result?.[0]?.recommendedSymbols ?? [];
+    if (recommended.length > 0) {
+      competitorTickers = recommended
         .slice(0, 3)
-        .map((s) => s.symbol);
+        .map((s: { symbol: string }) => s.symbol);
     }
   } catch {
     // Fall through to sector peers
@@ -250,14 +414,10 @@ export async function fetchCompetitors(
   // Fallback to sector peers
   if (competitorTickers.length === 0) {
     try {
-      const summary = await yf.quoteSummary(ticker, {
-        modules: ["assetProfile"],
-      });
-      const sector = summary.assetProfile?.sector ?? "";
+      const quote = await fetchStockQuote(ticker);
+      const sector = quote.sector;
       const peers = SECTOR_PEERS[sector] ?? [];
-      competitorTickers = peers
-        .filter((t) => t !== ticker)
-        .slice(0, 3);
+      competitorTickers = peers.filter((t) => t !== ticker).slice(0, 3);
     } catch {
       return [];
     }
@@ -268,43 +428,28 @@ export async function fetchCompetitors(
   for (const compTicker of competitorTickers) {
     try {
       const [quote, fundamentals] = await Promise.all([
-        yf.quoteSummary(compTicker, { modules: ["price", "assetProfile", "defaultKeyStatistics", "summaryDetail"] }),
-        yf.fundamentalsTimeSeries(compTicker, {
-          period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          period2: new Date().toISOString().split("T")[0],
-          type: "annual",
-          module: "all",
-        }),
+        fetchStockQuote(compTicker),
+        fetchTimeseries(compTicker, "annual", 2 * 365 * 24 * 60 * 60 * 1000),
       ]);
 
-      const latest = fundamentals.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      )[0];
-
-      const row = latest as Record<string, unknown> | undefined;
-      const totalAssets = (row?.totalAssets as number) ?? 0;
+      const latest = fundamentals[0]; // Already sorted descending
+      const totalAssets = (latest?.totalAssets as number) ?? 0;
       const totalLiabilities =
-        (row?.totalLiabilitiesNetMinorityInterest as number) ?? 0;
+        (latest?.totalLiabilitiesNetMinorityInterest as number) ?? 0;
       const equity =
-        (row?.stockholdersEquity as number) ??
-        (row?.commonStockEquity as number) ??
+        (latest?.stockholdersEquity as number) ??
         totalAssets - totalLiabilities;
 
       competitors.push({
         ticker: compTicker,
-        name:
-          quote.price?.longName ??
-          quote.price?.shortName ??
-          compTicker,
-        sector: quote.assetProfile?.sector ?? "",
+        name: quote.name,
+        sector: quote.sector,
         totalAssets,
         totalLiabilities,
         shareholdersEquity: equity,
-        marketCap: quote.price?.marketCap ?? 0,
-        trailingPE: quote.summaryDetail?.trailingPE ?? 0,
-        priceToBook: quote.defaultKeyStatistics?.priceToBook ?? 0,
+        marketCap: quote.marketCap,
+        trailingPE: quote.trailingPE,
+        priceToBook: quote.priceToBook,
       });
     } catch {
       // Skip this competitor if data fetch fails
