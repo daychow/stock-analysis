@@ -12,8 +12,13 @@ export function SearchBar({ className }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const cleaned = ticker.trim().toUpperCase();
+    let cleaned = ticker.trim().toUpperCase();
     if (!cleaned) return;
+    // Pad HK stock codes to 4 digits (e.g. 700.HK → 0700.HK)
+    const hkMatch = cleaned.match(/^(\d{1,3})\.HK$/);
+    if (hkMatch) {
+      cleaned = hkMatch[1].padStart(4, "0") + ".HK";
+    }
     const recent = getRecentSearches();
     const updated = [cleaned, ...recent.filter((s) => s !== cleaned)].slice(0, 10);
     localStorage.setItem("recentSearches", JSON.stringify(updated));

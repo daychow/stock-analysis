@@ -34,8 +34,10 @@ export async function POST(
     await cache.set(`analysis:${ticker}`, analysis, 86400);
     return NextResponse.json(analysis);
   } catch (error) {
+    console.error("Analysis error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: `Failed to analyze ${ticker}` },
+      { error: `Failed to analyze ${ticker}: ${message}` },
       { status: 500 }
     );
   }
