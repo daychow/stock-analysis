@@ -17,6 +17,7 @@ const mockFinancials: FinancialsData = {
   balanceSheet: [{ year: "2024", totalAssets: 352600000000, totalLiabilities: 290400000000, shareholdersEquity: 62100000000, debtToEquity: 4.67 }],
   incomeStatement: [{ year: "2024", totalRevenue: 383300000000, netIncome: 97000000000, grossMargin: 0.462, netMargin: 0.253 }],
   cashFlow: [{ year: "2024", operatingCashFlow: 110500000000, capitalExpenditure: -11000000000, freeCashFlow: 99500000000 }],
+  quarterly: [{ quarter: "2024 Q4", totalRevenue: 95000000000, netIncome: 24000000000, operatingCashFlow: 28000000000, freeCashFlow: 25000000000 }],
   revenueGrowth: [15.2], netIncomeGrowth: [12.5], fcfGrowth: [6.8],
 };
 

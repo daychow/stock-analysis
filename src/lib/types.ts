@@ -42,10 +42,19 @@ export interface CashFlowEntry {
   freeCashFlow: number;
 }
 
+export interface QuarterlyEntry {
+  quarter: string; // e.g. "2025 Q4", "2026 Q1"
+  totalRevenue: number;
+  netIncome: number;
+  operatingCashFlow: number;
+  freeCashFlow: number;
+}
+
 export interface FinancialsData {
   balanceSheet: BalanceSheetEntry[];
   incomeStatement: IncomeStatementEntry[];
   cashFlow: CashFlowEntry[];
+  quarterly: QuarterlyEntry[];
   revenueGrowth: number[];
   netIncomeGrowth: number[];
   fcfGrowth: number[];

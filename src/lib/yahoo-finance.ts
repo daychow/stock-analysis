@@ -5,6 +5,7 @@ import type {
   BalanceSheetEntry,
   IncomeStatementEntry,
   CashFlowEntry,
+  QuarterlyEntry,
   NewsArticle,
   CompetitorSummary,
   PriceHistoryPoint,
@@ -141,10 +142,41 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
     };
   });
 
+  // Fetch quarterly data (last 4 quarters)
+  const qData = await yf.fundamentalsTimeSeries(ticker, {
+    period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    period2: new Date().toISOString().split("T")[0],
+    type: "quarterly",
+    module: "all",
+  });
+
+  const qSorted = [...qData].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const quarters = qSorted.slice(0, 4);
+
+  const quarterly: QuarterlyEntry[] = quarters.map((row) => {
+    const r = row as Record<string, unknown>;
+    const d = new Date(row.date);
+    const q = Math.ceil((d.getMonth() + 1) / 3);
+    const operatingCF = (r.operatingCashFlow as number) ?? 0;
+    const capex = (r.capitalExpenditure as number) ?? 0;
+    return {
+      quarter: `${d.getFullYear()} Q${q}`,
+      totalRevenue: (r.totalRevenue as number) ?? 0,
+      netIncome: (r.netIncomeCommonStockholders as number) ?? (r.netIncome as number) ?? 0,
+      operatingCashFlow: operatingCF,
+      freeCashFlow: operatingCF + capex,
+    };
+  });
+
   return {
     balanceSheet,
     incomeStatement,
     cashFlow,
+    quarterly,
     revenueGrowth: computeGrowth(incomeStatement.map((i) => i.totalRevenue)),
     netIncomeGrowth: computeGrowth(incomeStatement.map((i) => i.netIncome)),
     fcfGrowth: computeGrowth(cashFlow.map((c) => c.freeCashFlow)),

@@ -77,6 +77,36 @@ export function FinancialSummary({ data }: Props) {
         </Card>
       )}
 
+      {data.quarterly.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">季度業績 (最近 4 季)</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Quarter</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Net Income</TableHead>
+                  <TableHead className="text-right">Operating CF</TableHead>
+                  <TableHead className="text-right">FCF</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.quarterly.map((row) => (
+                  <TableRow key={row.quarter}>
+                    <TableCell className="font-medium">{row.quarter}</TableCell>
+                    <TableCell className="text-right">{fmt(row.totalRevenue)}</TableCell>
+                    <TableCell className="text-right">{fmt(row.netIncome)}</TableCell>
+                    <TableCell className="text-right">{fmt(row.operatingCashFlow)}</TableCell>
+                    <TableCell className="text-right">{fmt(row.freeCashFlow)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {(data.revenueGrowth.length > 0 || data.netIncomeGrowth.length > 0 || data.fcfGrowth.length > 0) && (
         <Card>
           <CardHeader><CardTitle className="text-base">成長率 (YoY)</CardTitle></CardHeader>

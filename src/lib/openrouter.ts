@@ -27,6 +27,10 @@ export function buildAnalysisPrompt(
     .map(c => `${c.ticker} (${c.name}): Market Cap=$${fmt(c.marketCap)}, P/E=${c.trailingPE.toFixed(1)}, P/B=${c.priceToBook.toFixed(1)}, Assets=$${fmt(c.totalAssets)}, Liabilities=$${fmt(c.totalLiabilities)}`)
     .join("\n");
 
+  const qRows = financials.quarterly
+    .map(q => `${q.quarter}: Revenue=$${fmt(q.totalRevenue)}, Net Income=$${fmt(q.netIncome)}, Operating CF=$${fmt(q.operatingCashFlow)}, FCF=$${fmt(q.freeCashFlow)}`)
+    .join("\n");
+
   const newsRows = news.slice(0, 5).map(n => `- ${n.title}`).join("\n");
 
   return `Analyze the following stock and provide an investment recommendation.
@@ -54,6 +58,9 @@ ${cfRows}
 
 ## Growth Rates (YoY)
 ${growthSection}
+
+## Quarterly Results (last 4 quarters, most recent first)
+${qRows}
 
 ## Competitor Valuations
 ${compRows}
@@ -92,7 +99,7 @@ export function parseAnalysisResponse(raw: string): AIAnalysisResult {
 export async function analyzeStock(
   quote: StockQuote, financials: FinancialsData,
   competitors: CompetitorSummary[], news: NewsArticle[],
-  apiKey: string, model: string = "google/gemma-4-31b-it"
+  apiKey: string, model: string = "x-ai/grok-4.1-fast"
 ): Promise<AIAnalysisResult> {
   const prompt = buildAnalysisPrompt(quote, financials, competitors, news);
 
@@ -117,6 +124,9 @@ export async function analyzeStock(
   }
 
   const data = await response.json();
+  if (!data.choices || !data.choices[0]?.message?.content) {
+    throw new Error(`OpenRouter returned unexpected response: ${JSON.stringify(data).slice(0, 200)}`);
+  }
   const content = data.choices[0].message.content;
   return parseAnalysisResponse(content);
 }
