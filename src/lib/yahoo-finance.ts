@@ -236,7 +236,7 @@ export async function fetchCompetitors(
   for (const compTicker of competitorTickers) {
     try {
       const [quote, fundamentals] = await Promise.all([
-        yf.quoteSummary(compTicker, { modules: ["price", "assetProfile"] }),
+        yf.quoteSummary(compTicker, { modules: ["price", "assetProfile", "defaultKeyStatistics", "summaryDetail"] }),
         yf.fundamentalsTimeSeries(compTicker, {
           period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000)
             .toISOString()
@@ -270,6 +270,9 @@ export async function fetchCompetitors(
         totalAssets,
         totalLiabilities,
         shareholdersEquity: equity,
+        marketCap: quote.price?.marketCap ?? 0,
+        trailingPE: quote.summaryDetail?.trailingPE ?? 0,
+        priceToBook: quote.defaultKeyStatistics?.priceToBook ?? 0,
       });
     } catch {
       // Skip this competitor if data fetch fails
