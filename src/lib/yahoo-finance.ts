@@ -29,11 +29,13 @@ const SECTOR_PEERS: Record<string, string[]> = {
 
 export async function fetchStockQuote(ticker: string): Promise<StockQuote> {
   const result = await yf.quoteSummary(ticker, {
-    modules: ["price", "assetProfile"],
+    modules: ["price", "assetProfile", "defaultKeyStatistics", "summaryDetail"],
   });
 
   const price = result.price!;
   const profile = result.assetProfile!;
+  const keyStats = result.defaultKeyStatistics;
+  const details = result.summaryDetail;
 
   return {
     ticker: price.symbol ?? ticker,
@@ -48,6 +50,12 @@ export async function fetchStockQuote(ticker: string): Promise<StockQuote> {
     currency: price.currency ?? "USD",
     description: profile.longBusinessSummary ?? "",
     revenueBreakdown: "",
+    marketCap: price.marketCap ?? 0,
+    trailingPE: details?.trailingPE ?? 0,
+    forwardPE: details?.forwardPE ?? 0,
+    priceToBook: keyStats?.priceToBook ?? 0,
+    evToEbitda: keyStats?.enterpriseToEbitda ?? 0,
+    dividendYield: details?.dividendYield ? details.dividendYield * 100 : 0,
   };
 }
 
