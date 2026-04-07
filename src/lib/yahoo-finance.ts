@@ -4,6 +4,7 @@ import type {
   FinancialsData,
   BalanceSheetEntry,
   IncomeStatementEntry,
+  CashFlowEntry,
   NewsArticle,
   CompetitorSummary,
   PriceHistoryPoint,
@@ -57,6 +58,20 @@ export async function fetchStockQuote(ticker: string): Promise<StockQuote> {
     evToEbitda: keyStats?.enterpriseToEbitda ?? 0,
     dividendYield: details?.dividendYield ? details.dividendYield * 100 : 0,
   };
+}
+
+function computeGrowth(values: number[]): number[] {
+  const growth: number[] = [];
+  for (let i = 0; i < values.length - 1; i++) {
+    const current = values[i];
+    const previous = values[i + 1];
+    if (previous !== 0) {
+      growth.push(Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100);
+    } else {
+      growth.push(0);
+    }
+  }
+  return growth;
 }
 
 export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
@@ -114,7 +129,26 @@ export async function fetchFinancials(ticker: string): Promise<FinancialsData> {
     };
   });
 
-  return { balanceSheet, incomeStatement };
+  const cashFlow: CashFlowEntry[] = years.map((row) => {
+    const r = row as Record<string, unknown>;
+    const operatingCF = (r.operatingCashFlow as number) ?? 0;
+    const capex = (r.capitalExpenditure as number) ?? 0;
+    return {
+      year: new Date(row.date).getFullYear().toString(),
+      operatingCashFlow: operatingCF,
+      capitalExpenditure: capex,
+      freeCashFlow: operatingCF + capex,
+    };
+  });
+
+  return {
+    balanceSheet,
+    incomeStatement,
+    cashFlow,
+    revenueGrowth: computeGrowth(incomeStatement.map((i) => i.totalRevenue)),
+    netIncomeGrowth: computeGrowth(incomeStatement.map((i) => i.netIncome)),
+    fcfGrowth: computeGrowth(cashFlow.map((c) => c.freeCashFlow)),
+  };
 }
 
 export async function fetchNews(ticker: string): Promise<NewsArticle[]> {
