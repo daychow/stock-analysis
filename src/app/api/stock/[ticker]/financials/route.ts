@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchFinancials } from "@/lib/yahoo-finance";
+import { CacheHelper } from "@/lib/cache";
 
 export async function GET(
   request: NextRequest,
@@ -7,8 +8,14 @@ export async function GET(
 ) {
   const { ticker } = await params;
 
+  const cache = new CacheHelper(null);
+
+  const cached = await cache.get(`financials:${ticker}`);
+  if (cached) return NextResponse.json(cached);
+
   try {
     const financials = await fetchFinancials(ticker);
+    await cache.set(`financials:${ticker}`, financials, 86400);
     return NextResponse.json(financials);
   } catch (error) {
     return NextResponse.json(

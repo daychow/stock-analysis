@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchStockQuote, fetchFinancials, fetchNews, fetchCompetitors } from "@/lib/yahoo-finance";
 import { analyzeStock } from "@/lib/openrouter";
+import { CacheHelper } from "@/lib/cache";
 
 export async function POST(
   request: NextRequest,
@@ -16,6 +17,11 @@ export async function POST(
     );
   }
 
+  const cache = new CacheHelper(null);
+
+  const cached = await cache.get(`analysis:${ticker}`);
+  if (cached) return NextResponse.json(cached);
+
   try {
     const [quote, financials, news, competitors] = await Promise.all([
       fetchStockQuote(ticker),
@@ -25,6 +31,7 @@ export async function POST(
     ]);
 
     const analysis = await analyzeStock(quote, financials, competitors, news, apiKey);
+    await cache.set(`analysis:${ticker}`, analysis, 86400);
     return NextResponse.json(analysis);
   } catch (error) {
     return NextResponse.json(
